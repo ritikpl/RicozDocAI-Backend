@@ -4,22 +4,26 @@ const documentSchema = new mongoose.Schema(
   {
     documentType: {
       type: String,
-      default: "",
+      required: true,
+      trim: true,
     },
 
     invoiceNumber: {
       type: String,
-      default: "",
+      required: true,
+      trim: true,
     },
 
     vendorName: {
       type: String,
-      default: "",
+      required: true,
+      trim: true,
     },
 
     date: {
       type: String,
-      default: "",
+      required: true,
+      trim: true,
     },
 
     subtotal: {
@@ -34,7 +38,8 @@ const documentSchema = new mongoose.Schema(
 
     total: {
       type: String,
-      default: "",
+      required: true,
+      trim: true,
     },
 
     originalName: {
@@ -48,6 +53,16 @@ const documentSchema = new mongoose.Schema(
     },
 
     filePath: {
+      type: String,
+      default: "",
+    },
+
+    fileUrl: {
+      type: String,
+       default: "",
+    },
+
+    cloudinaryPublicId: {
       type: String,
       default: "",
     },
