@@ -40,6 +40,28 @@ app.get("/", (req, res) => {
   })
 })
 
+app.get("/api/cloudinary-test", async (req, res) => {
+  try {
+    const cloudinary = require("./config/cloudinary")
+
+    const result = await cloudinary.api.ping()
+
+    res.json({
+      success: true,
+      message: "Cloudinary connection working",
+      result,
+    })
+  } catch (error) {
+    console.error("Cloudinary test error:", error)
+
+    res.status(500).json({
+      success: false,
+      message: "Cloudinary connection failed",
+      error: error.message,
+    })
+  }
+})
+
 // Server
 const PORT = process.env.PORT || 5000
 
