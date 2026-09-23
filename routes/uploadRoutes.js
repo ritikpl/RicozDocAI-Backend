@@ -19,7 +19,7 @@ router.post("/", upload.single("document"), async (req, res) => {
 
     // Upload file to Cloudinary
     const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-      resource_type: "image",
+      resource_type: "auto",
       folder: "ricozdocai-documents",
     })
 
