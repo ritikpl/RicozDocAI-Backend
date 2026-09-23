@@ -51,7 +51,12 @@ router.post("/", upload.single("document"), async (req, res) => {
       extractedData,
     })
   } catch (error) {
-    console.error("Document processing error:", error)
+    console.error("Cloudinary error details:", {
+      message: error.message,
+      http_code: error.http_code,
+      name: error.name,
+       error: error.error,
+       })
 
     // Remove temporary local file
     if (req.file?.path && fs.existsSync(req.file.path)) {
