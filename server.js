@@ -14,7 +14,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://ricozdocai-frontend.vercel.app",
+      "https://ricoz-doc-ai-frontend.vercel.app",
     ],
   })
 )
