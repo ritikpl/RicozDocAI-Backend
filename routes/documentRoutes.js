@@ -2,6 +2,7 @@ const express = require("express")
 const Document = require("../models/Document")
 const ExcelJS = require("exceljs")
 const fs = require("fs")
+const cloudinary = require("../config/cloudinary")
 const router = express.Router()
 
 // Get document statistics
@@ -79,28 +80,78 @@ router.get("/export/excel", async (req, res) => {
     const worksheet = workbook.addWorksheet("Documents")
 
     worksheet.columns = [
-      { header: "Document Type", key: "documentType", width: 18 },
-      { header: "Invoice Number", key: "invoiceNumber", width: 20 },
-      { header: "Vendor Name", key: "vendorName", width: 35 },
-      { header: "Date", key: "date", width: 20 },
-      { header: "Subtotal", key: "subtotal", width: 15 },
-      { header: "Tax", key: "tax", width: 15 },
-      { header: "Total", key: "total", width: 15 },
-      { header: "File Name", key: "originalName", width: 30 },
-    ]
+  { header: "Document Type", key: "documentType", width: 18 },
+  { header: "Invoice Number", key: "invoiceNumber", width: 20 },
+  { header: "Vendor Name", key: "vendorName", width: 35 },
+  { header: "Customer Name", key: "customerName", width: 30 },
+  { header: "Date", key: "date", width: 15 },
+  { header: "Due Date", key: "dueDate", width: 15 },
+
+  { header: "Subtotal", key: "subtotal", width: 15 },
+  { header: "Discount", key: "discount", width: 15 },
+
+  { header: "Shipping Charge", key: "shippingCharge", width: 18 },
+  { header: "Delivery Charge", key: "deliveryCharge", width: 18 },
+  { header: "Insurance Charge", key: "insuranceCharge", width: 18 },
+  { header: "Other Charges", key: "otherCharges", width: 18 },
+
+  { header: "CGST", key: "cgst", width: 15 },
+  { header: "SGST", key: "sgst", width: 15 },
+  { header: "IGST", key: "igst", width: 15 },
+  { header: "Other Tax", key: "otherTax", width: 15 },
+  { header: "Total Tax", key: "totalTax", width: 15 },
+
+  { header: "Total", key: "total", width: 15 },
+  { header: "Advance Paid", key: "advancePaid", width: 18 },
+  { header: "Paid Amount", key: "paidAmount", width: 18 },
+  { header: "Due Amount", key: "dueAmount", width: 18 },
+  { header: "Payment Method", key: "paymentMethod", width: 22 },
+
+  { header: "File Name", key: "originalName", width: 50 },
+]
 
     documents.forEach((document) => {
-      worksheet.addRow({
-        documentType: document.documentType,
-        invoiceNumber: document.invoiceNumber,
-        vendorName: document.vendorName,
-        date: document.date,
-        subtotal: document.subtotal,
-        tax: document.tax,
-        total: document.total,
-        originalName: document.originalName,
-      })
-    })
+  worksheet.addRow({
+    documentType: document.documentType,
+    invoiceNumber: document.invoiceNumber,
+    vendorName: document.vendorName,
+    customerName: document.customerName || "",
+    date: document.date,
+    dueDate: document.dueDate || "",
+
+    subtotal: document.subtotal || "",
+    discount: document.discount || "",
+
+    shippingCharge: document.charges?.shippingCharge || "",
+    deliveryCharge: document.charges?.deliveryCharge || "",
+    insuranceCharge: document.charges?.insuranceCharge || "",
+    otherCharges: document.charges?.otherCharges || "",
+
+    cgst: document.taxes?.cgst?.amount || "",
+    sgst: document.taxes?.sgst?.amount || "",
+    igst: document.taxes?.igst?.amount || "",
+    otherTax: document.taxes?.otherTax?.amount || "",
+
+    totalTax:
+      document.taxes?.totalTax ||
+      document.tax ||
+      "",
+
+    total: document.total || "",
+
+    advancePaid: document.payment?.advancePaid || "",
+    paidAmount: document.payment?.paidAmount || "",
+    dueAmount: document.payment?.dueAmount || "",
+    paymentMethod: document.payment?.paymentMethod || "",
+
+    originalName: document.originalName || "",
+  })
+})
+
+worksheet.getColumn("originalName").alignment = {
+  wrapText: true,
+  vertical: "top",
+}
 
     worksheet.getRow(1).font = {
       bold: true,
@@ -169,10 +220,43 @@ router.delete("/:id", async (req, res) => {
       })
     }
 
+   // Delete file from Cloudinary
+if (document.cloudinaryPublicId) {
+  try {
+    let deleteResult = await cloudinary.uploader.destroy(
+      document.cloudinaryPublicId,
+      {
+        resource_type: "image",
+        type: "upload",
+      }
+    )
+
+    // If not found as image, try raw resource type
+    if (deleteResult.result !== "ok") {
+      deleteResult = await cloudinary.uploader.destroy(
+        document.cloudinaryPublicId,
+        {
+          resource_type: "raw",
+          type: "upload",
+        }
+      )
+    }
+
+    console.log("Cloudinary delete result:", deleteResult)
+  } catch (cloudinaryError) {
+    console.error(
+      "Cloudinary delete error:",
+      cloudinaryError.message
+    )
+  }
+}
+
+    // Delete local file if it still exists
     if (document.filePath && fs.existsSync(document.filePath)) {
       fs.unlinkSync(document.filePath)
     }
 
+    // Delete MongoDB document
     await Document.findByIdAndDelete(req.params.id)
 
     res.status(200).json({
@@ -187,7 +271,6 @@ router.delete("/:id", async (req, res) => {
       message: "Failed to delete document",
       error: error.message,
     })
-    
   }
 })
 

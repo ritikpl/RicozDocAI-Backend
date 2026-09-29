@@ -42,7 +42,7 @@ router.post("/", upload.single("document"), async (req, res) => {
       file: {
         originalName: req.file.originalname,
         fileName: req.file.filename,
-        filePath: req.file.path,
+        filePath: "",
         fileUrl: uploadResult.secure_url,
         cloudinaryPublicId: uploadResult.public_id,
         fileType: req.file.mimetype,
@@ -57,6 +57,35 @@ router.post("/", upload.single("document"), async (req, res) => {
       name: error.name,
        error: error.error,
        })
+
+       if (cloudinaryPublicId) {
+  try {
+    let deleteResult = await cloudinary.uploader.destroy(
+      cloudinaryPublicId,
+      {
+        resource_type: "image",
+        type: "upload",
+      }
+    )
+
+    if (deleteResult.result !== "ok") {
+      deleteResult = await cloudinary.uploader.destroy(
+        cloudinaryPublicId,
+        {
+          resource_type: "raw",
+          type: "upload",
+        }
+      )
+    }
+
+    console.log("Cloudinary cleanup result:", deleteResult)
+  } catch (cloudinaryError) {
+    console.error(
+      "Cloudinary cleanup error:",
+      cloudinaryError.message
+    )
+  }
+}
 
     // Remove temporary local file
     if (req.file?.path && fs.existsSync(req.file.path)) {
